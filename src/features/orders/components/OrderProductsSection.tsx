@@ -3,10 +3,10 @@
 import { useState } from 'react';
 
 const FAKE_PRODUCTS_DB: Record<string, { price: string; segment: string; representative: string }> = {
-  'Perfume Natura Ekos': { price: '64.00', segment: 'Perfumaria', representative: 'Renata' },
-  'Batom Romanel': { price: '35.50', segment: 'Cosméticos', representative: 'Renata' },
-  'Kit Avon Care': { price: '45.00', segment: 'Cosméticos', representative: 'Renata' },
-  'Hidratante Tododia': { price: '52.90', segment: 'Perfumaria', representative: 'Renata' },
+  'Perfume Natura Ekos': { price: '64.00', segment: 'Perfumaria', representative: 'Natura & Avon' },
+  'Batom Romance': { price: '35.50', segment: 'Cosméticos', representative: 'Romance' },
+  'Kit Avon Care': { price: '45.00', segment: 'Cosméticos', representative: 'Natura & Avon' },
+  'Hidratante Tododia': { price: '52.90', segment: 'Perfumaria', representative: 'Natura & Avon' },
 };
 
 interface OrderProductsSectionProps {
@@ -27,7 +27,7 @@ export function OrderProductsSection({ onAddProduct }: OrderProductsSectionProps
   const [quantity, setQuantity] = useState('1');
   const [price, setPrice] = useState('');
   const [segment, setSegment] = useState('Perfumaria');
-  const [representative, setRepresentative] = useState('Renata');
+  const [representative, setRepresentative] = useState('Natura & Avon');
 
   const productNames = Object.keys(FAKE_PRODUCTS_DB);
   const filteredProducts = productNames.filter(p => 
@@ -43,7 +43,7 @@ export function OrderProductsSection({ onAddProduct }: OrderProductsSectionProps
     if (details) {
       setPrice(details.price);
       setSegment(details.segment);
-      setRepresentative(details.representative);
+      setRepresentative(details.representative); // Atualiza o representante corretamente!
     }
   };
 
@@ -184,8 +184,8 @@ export function OrderProductsSection({ onAddProduct }: OrderProductsSectionProps
               onChange={(e) => setRepresentative(e.target.value)}
               className="w-full bg-[#FDFBF7] border border-stone-200 rounded-2xl px-3 py-2.5 text-sm font-medium text-stone-900 focus:outline-none focus:border-orange-500 shadow-inner"
             >
-              <option value="Renata">Renata</option>
-              <option value="Outro">Outro</option>
+              <option value="Natura & Avon">Natura & Avon</option>
+              <option value="Romance">Romance</option>
             </select>
           </div>
         </div>
