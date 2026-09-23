@@ -9,7 +9,17 @@ const FAKE_PRODUCTS_DB: Record<string, { price: string; segment: string; represe
   'Hidratante Tododia': { price: '52.90', segment: 'Perfumaria', representative: 'Renata' },
 };
 
-export function OrderProductsSection() {
+interface OrderProductsSectionProps {
+  onAddProduct: (item: {
+    name: string;
+    quantity: number;
+    price: number;
+    segment: string;
+    representative: string;
+  }) => void;
+}
+
+export function OrderProductsSection({ onAddProduct }: OrderProductsSectionProps) {
   const [query, setQuery] = useState('');
   const [selectedProduct, setSelectedProduct] = useState<string | null>(null);
   const [isOpen, setIsOpen] = useState(false);
@@ -35,6 +45,27 @@ export function OrderProductsSection() {
       setSegment(details.segment);
       setRepresentative(details.representative);
     }
+  };
+
+  const handleAdd = () => {
+    const productName = selectedProduct || query;
+    if (!productName.trim()) {
+      alert('Por favor, selecione ou digite o nome do produto.');
+      return;
+    }
+
+    onAddProduct({
+      name: productName,
+      quantity: Number(quantity) || 1,
+      price: Number(price) || 0,
+      segment,
+      representative,
+    });
+
+    setSelectedProduct(null);
+    setQuery('');
+    setQuantity('1');
+    setPrice('');
   };
 
   return (
@@ -74,7 +105,6 @@ export function OrderProductsSection() {
                   }}
                   onFocus={() => setIsOpen(true)}
                   onBlur={() => {
-                    // Timeout para permitir o clique nas opções antes de fechar
                     setTimeout(() => setIsOpen(false), 200);
                   }}
                   className="w-full bg-transparent text-sm font-medium text-stone-900 focus:outline-none placeholder:text-stone-400"
@@ -90,7 +120,7 @@ export function OrderProductsSection() {
                 filteredProducts.map((prod) => (
                   <div
                     key={prod}
-                    onMouseDown={(e) => e.preventDefault()} // Evita que o onBlur dispare antes do clique
+                    onMouseDown={(e) => e.preventDefault()}
                     onClick={() => handleSelectProduct(prod)}
                     className="px-4 py-3 text-xs font-medium text-stone-700 hover:bg-orange-50 hover:text-orange-900 cursor-pointer transition-colors flex justify-between items-center"
                   >
@@ -163,7 +193,7 @@ export function OrderProductsSection() {
         {/* Botão Adicionar Item */}
         <button 
           type="button"
-          onClick={() => alert(`Item adicionado!\nProduto: ${selectedProduct || query}\nQtd: ${quantity}\nPreço: R$ ${price}`)}
+          onClick={handleAdd}
           className="w-full bg-[#A3E635] hover:bg-[#97d82f] text-stone-950 font-bold py-3 rounded-2xl text-sm shadow-md shadow-lime-500/10 transition-transform active:scale-[0.99] mt-2 flex items-center justify-center gap-1.5"
         >
           <span>+</span> Adicionar item
