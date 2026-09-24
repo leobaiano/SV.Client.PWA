@@ -7,6 +7,7 @@ interface OrderSummarySheetProps {
   onClose: () => void;
   onConfirm: () => void;
   client: string | null;
+  representative: string | null;
   items: OrderItem[];
   installments: number;
 }
@@ -16,6 +17,7 @@ export function OrderSummarySheet({
   onClose,
   onConfirm,
   client,
+  representative,
   items,
   installments,
 }: OrderSummarySheetProps) {
@@ -55,22 +57,14 @@ export function OrderSummarySheet({
 
   const installmentList = generateInstallmentList();
 
-  const groupedByRep: Record<string, { total: number; segments: Record<string, OrderItem[]> }> = {};
-
+  // Agrupamento por Segmentos múltiplos
+  const segmentsMap: Record<string, OrderItem[]> = {};
   items.forEach((item) => {
-    const rep = item.representative || 'Geral';
-    const seg = item.segment || 'Geral';
-    const itemTotal = item.price * item.quantity;
-
-    if (!groupedByRep[rep]) {
-      groupedByRep[rep] = { total: 0, segments: {} };
+    const segKey = item.segments && item.segments.length > 0 ? item.segments.join(', ') : 'Geral';
+    if (!segmentsMap[segKey]) {
+      segmentsMap[segKey] = [];
     }
-    groupedByRep[rep].total += itemTotal;
-
-    if (!groupedByRep[rep].segments[seg]) {
-      groupedByRep[rep].segments[seg] = [];
-    }
-    groupedByRep[rep].segments[seg].push(item);
+    segmentsMap[segKey].push(item);
   });
 
   const handleWhatsAppShare = () => {
@@ -95,56 +89,54 @@ export function OrderSummarySheet({
           </div>
 
           <div className="space-y-4">
-            {/* Exibindo o cliente selecionado */}
+            {/* Cliente */}
             <div className="bg-white p-4 rounded-2xl border border-stone-200/60 shadow-sm">
               <span className="text-[10px] font-bold text-stone-400 uppercase">Cliente</span>
               <p className="text-sm font-bold text-stone-900 mt-0.5">{client || 'Cliente não identificado'}</p>
             </div>
 
+            {/* Representante e Itens da Venda */}
             <div className="bg-white p-4 rounded-2xl border border-stone-200/60 shadow-sm">
+              <div className="flex justify-between items-center mb-3 pb-2 border-b border-stone-100">
+                <div>
+                  <span className="text-[10px] font-bold text-stone-400 uppercase block">Representante</span>
+                  <p className="text-xs font-black text-stone-900 uppercase">{representative || 'Não definido'}</p>
+                </div>
+                <span className="text-xs font-bold text-orange-600">R$ {totalAmount.toFixed(2).replace('.', ',')}</span>
+              </div>
+
               <span className="text-[10px] font-bold text-stone-400 uppercase mb-3 block">
                 Itens da Venda ({items.length})
               </span>
 
-              {Object.keys(groupedByRep).length === 0 ? (
+              {items.length === 0 ? (
                 <p className="text-xs text-stone-400 italic">Nenhum item adicionado.</p>
               ) : (
-                <div className="space-y-4">
-                  {Object.entries(groupedByRep).map(([repName, repData]) => (
-                    <div key={repName} className="border-b border-stone-100 pb-3 last:border-none last:pb-0">
-                      <div className="flex justify-between items-center text-xs font-black text-stone-900 uppercase">
-                        <span>{repName}</span>
-                        <span>R$ {repData.total.toFixed(2).replace('.', ',')}</span>
-                      </div>
-
-                      <div className="mt-2 pl-3 space-y-2">
-                        {Object.entries(repData.segments).map(([segName, segItems]) => {
-                          const segTotal = segItems.reduce((acc, i) => acc + (i.price * i.quantity), 0);
-                          return (
-                            <div key={segName}>
-                              <div className="flex justify-between text-[11px] font-bold text-stone-600">
-                                <span>{segName}</span>
-                                <span>R$ {segTotal.toFixed(2).replace('.', ',')}</span>
-                              </div>
-
-                              <div className="mt-1 pl-3 space-y-1">
-                                {segItems.map((prod) => (
-                                  <div key={prod.id} className="flex justify-between text-[11px] text-stone-500">
-                                    <span>{prod.name} ({prod.quantity}x)</span>
-                                    <span className="font-semibold">R$ {(prod.price * prod.quantity).toFixed(2).replace('.', ',')}</span>
-                                  </div>
-                                ))}
-                              </div>
+                <div className="space-y-3">
+                  {Object.entries(segmentsMap).map(([segName, segItems]) => {
+                    const segTotal = segItems.reduce((acc, i) => acc + (i.price * i.quantity), 0);
+                    return (
+                      <div key={segName} className="border-b border-stone-50 pb-2 last:border-none">
+                        <div className="flex justify-between text-[11px] font-bold text-stone-600 uppercase">
+                          <span>{segName}</span>
+                          <span>R$ {segTotal.toFixed(2).replace('.', ',')}</span>
+                        </div>
+                        <div className="mt-1 pl-3 space-y-1">
+                          {segItems.map((prod) => (
+                            <div key={prod.id} className="flex justify-between text-[11px] text-stone-500">
+                              <span>{prod.name} ({prod.quantity}x)</span>
+                              <span className="font-semibold">R$ {(prod.price * prod.quantity).toFixed(2).replace('.', ',')}</span>
                             </div>
-                          );
-                        })}
+                          ))}
+                        </div>
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
             </div>
 
+            {/* Forma de Pagamento / Parcelas com Datas */}
             <div className="bg-white p-4 rounded-2xl border border-stone-200/60 shadow-sm space-y-3">
               <div className="flex justify-between items-center pb-2 border-b border-stone-100">
                 <span className="text-[10px] font-bold text-stone-400 uppercase">Forma de Pagamento</span>
@@ -175,6 +167,7 @@ export function OrderSummarySheet({
           </div>
         </div>
 
+        {/* Rodapé com WhatsApp e Confirmação */}
         <div className="pt-6 border-t border-stone-200 mt-6 space-y-2.5">
           <button
             type="button"

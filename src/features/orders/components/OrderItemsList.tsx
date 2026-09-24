@@ -5,7 +5,7 @@ export interface OrderItem {
   name: string;
   quantity: number;
   price: number;
-  segment: string;
+  segments: string[];
   representative: string;
 }
 
@@ -32,7 +32,8 @@ export function OrderItemsList({ items, onRemoveItem }: OrderItemsListProps) {
           <div className="space-y-3 divide-y divide-stone-100">
             {items.map((item, index) => {
               const itemTotal = item.price * item.quantity;
-              const initialLetter = item.representative.charAt(0).toUpperCase();
+              const initialLetter = item.representative ? item.representative.charAt(0).toUpperCase() : 'R';
+              const segmentsText = item.segments && item.segments.length > 0 ? item.segments.join(', ') : 'Geral';
 
               return (
                 <div key={item.id} className={`flex items-center justify-between pt-3 ${index === 0 ? 'pt-0' : ''}`}>
@@ -46,7 +47,7 @@ export function OrderItemsList({ items, onRemoveItem }: OrderItemsListProps) {
                         {item.name} · {item.quantity}x
                       </p>
                       <p className="text-[11px] text-stone-500">
-                        {item.segment} · {item.representative}
+                        {segmentsText} · {item.representative}
                       </p>
                     </div>
                   </div>

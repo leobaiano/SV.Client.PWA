@@ -7,7 +7,6 @@ import { OrderClientSection } from './OrderClientSection';
 import { OrderProductsSection } from './OrderProductsSection';
 import { OrderItemsList, OrderItem } from './OrderItemsList';
 import { OrderInstallmentsSection } from './OrderInstallmentsSection';
-import { OrderRepresentativeSplitSection } from './OrderRepresentativeSplitSection';
 import { OrderSummarySheet } from './OrderSummarySheet';
 
 export function NewOrderContainer() {
@@ -15,6 +14,7 @@ export function NewOrderContainer() {
   const [items, setItems] = useState<OrderItem[]>([]);
   const [installments, setInstallments] = useState(1);
   const [client, setClient] = useState<string | null>(null);
+  const [representative, setRepresentative] = useState<string | null>(null);
   const [isSheetOpen, setIsSheetOpen] = useState(false);
 
   const handleAddItem = (newItem: Omit<OrderItem, 'id'>) => {
@@ -39,18 +39,21 @@ export function NewOrderContainer() {
   return (
     <div className="w-full pb-12">
       <OrderHeader />
-      {/* Passando o estado do cliente e a função de alteração para o componente filho */}
       <OrderClientSection client={client} onClientChange={setClient} />
-      <OrderProductsSection onAddProduct={handleAddItem} />
+      
+      <OrderProductsSection
+        selectedRepresentative={representative}
+        onRepresentativeChange={setRepresentative}
+        hasItems={items.length > 0}
+        onAddProduct={handleAddItem}
+      />
+
       <OrderItemsList items={items} onRemoveItem={handleRemoveItem} />
+
       <OrderInstallmentsSection
         totalAmount={totalOrder}
         installments={installments}
         onInstallmentsChange={setInstallments}
-      />
-      <OrderRepresentativeSplitSection
-        items={items}
-        installments={installments}
       />
 
       {/* Botão de Conclusão da Venda */}
@@ -58,12 +61,16 @@ export function NewOrderContainer() {
         <button
           type="button"
           onClick={() => {
-            if (items.length === 0) {
-              alert('Adicione pelo menos um item antes de concluir a venda.');
-              return;
-            }
             if (!client) {
               alert('Por favor, selecione ou informe o cliente antes de concluir a venda.');
+              return;
+            }
+            if (!representative) {
+              alert('Por favor, selecione o representante da ordem.');
+              return;
+            }
+            if (items.length === 0) {
+              alert('Adicione pelo menos um item antes de concluir a venda.');
               return;
             }
             setIsSheetOpen(true);
@@ -74,12 +81,12 @@ export function NewOrderContainer() {
         </button>
       </div>
 
-      {/* Repassando o cliente preenchido para o resumo */}
       <OrderSummarySheet
         isOpen={isSheetOpen}
         onClose={() => setIsSheetOpen(false)}
         onConfirm={handleConfirmSale}
-        client={client} 
+        client={client}
+        representative={representative}
         items={items}
         installments={installments}
       />
