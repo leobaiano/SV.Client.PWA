@@ -8,6 +8,7 @@ import { OrderProductsSection } from './OrderProductsSection';
 import { OrderItemsList, OrderItem } from './OrderItemsList';
 import { OrderInstallmentsSection } from './OrderInstallmentsSection';
 import { OrderSummarySheet } from './OrderSummarySheet';
+import { createOrder, CreateOrderPayload } from '@/services/orderService';
 
 export function NewOrderContainer() {
   const router = useRouter();
@@ -16,6 +17,7 @@ export function NewOrderContainer() {
   const [client, setClient] = useState<string | null>(null);
   const [representative, setRepresentative] = useState<string | null>(null);
   const [isSheetOpen, setIsSheetOpen] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
 
   const handleAddItem = (newItem: Omit<OrderItem, 'id'>) => {
     const itemWithId: OrderItem = {
@@ -31,9 +33,57 @@ export function NewOrderContainer() {
 
   const totalOrder = items.reduce((acc, item) => acc + (item.price * item.quantity), 0);
 
-  const handleConfirmSale = () => {
-    setIsSheetOpen(false);
-    router.push('/?success=true');
+  // Função que dispara a integração real com o BFF
+  const handleConfirmSale = async () => {
+    try {
+      setIsLoading(true);
+
+      // Mapeamento das parcelas (com 1 mês a frente padrão e split vazio conforme contrato)
+      const today = new Date();
+      today.setMonth(today.getMonth() + 1);
+      const baseValue = totalOrder / (installments > 0 ? installments : 1);
+
+      const installmentsPayload = Array.from({ length: installments > 0 ? installments : 1 }, (_, i) => {
+        const dueDateObj = new Date(today);
+        dueDateObj.setMonth(today.getMonth() + i);
+
+        let currentAmount = baseValue;
+        if (i === installments - 1) {
+          const sumPrevious = Number((baseValue * (installments - 1)).toFixed(2));
+          currentAmount = totalOrder - sumPrevious;
+        }
+
+        return {
+          dueDate: dueDateObj.toISOString(),
+          amount: Number(currentAmount.toFixed(2)),
+          representationSplit: [],
+        };
+      });
+
+      // Montagem do Payload de Envio (Mapeando strings do MVP para IDs temporários aceitos pelo BFF)
+      const payload: CreateOrderPayload = {
+        clientId: "6ab053d7d9ca1931a5de7e32", // ID fixo de exemplo do MVP
+        totalAmount: Number(totalOrder.toFixed(2)),
+        items: items.map((item) => ({
+          productId: "6ab0504dd29c709f58516a69", // ID de produto padrão do MVP
+          productName: item.name,
+          price: item.price,
+          quantity: item.quantity,
+          segment: item.segments && item.segments.length > 0 ? item.segments[0] : "Geral",
+          representativeId: "6ab03d591b916732d3c1cfac", // ID de representante padrão do MVP
+        })),
+        installments: installmentsPayload,
+      };
+
+      await createOrder(payload);
+
+      setIsSheetOpen(false);
+      router.push('/?success=true');
+    } catch (error: any) {
+      alert(`Erro ao cadastrar a venda: ${error.message || 'Erro desconhecido'}`);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
