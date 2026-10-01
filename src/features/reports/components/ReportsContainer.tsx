@@ -7,7 +7,9 @@ export function ReportsContainer() {
   const [activeTab, setActiveTab] = useState<'date' | 'client'>('date');
   const [orders, setOrders] = useState<OrderResponseDTO[]>([]);
   const [loading, setLoading] = useState(true);
-  const [selectedDate, setSelectedDate] = useState('2026-10-01');
+  
+  // Data inicial padrão para o input date (formato YYYY-MM-DD)
+  const [selectedDate, setSelectedDate] = useState('2026-10-20');
   const [selectedClient, setSelectedClient] = useState('');
   
   // Estado para controlar quais cards estão expandidos
@@ -19,6 +21,8 @@ export function ReportsContainer() {
         setLoading(true);
         const data = await getOrdersForReport();
         setOrders(data);
+        
+        // Se houver ordens, define o primeiro cliente como padrão no select
         if (data.length > 0 && data[0].client) {
           setSelectedClient(data[0].client.name);
         }
@@ -31,22 +35,27 @@ export function ReportsContainer() {
     fetchOrders();
   }, []);
 
-  // Lista única de clientes para o filtro por cliente
-  const uniqueClients = Array.from(new Set(orders.map(o => o.client?.name).filter(Boolean)));
+  // Extrai lista única de clientes para o filtro por cliente
+  const uniqueClients = Array.from(
+    new Set(orders.map((o) => o.client?.name).filter(Boolean))
+  ) as string[];
 
-  // Transformação plana dos dados para exibir cada parcela individualmente nos relatórios
+  // Transforma o array de ordens em linhas de parcelas individuais para o relatório
   const reportRows = orders.flatMap((order) => {
     return order.installments.map((inst, index) => {
-      const dueDateFormatted = new Date(inst.dueDate).toLocaleDateString('pt-BR');
-      const isPast = new Date(inst.dueDate) < new Date();
+      const dueDateObj = new Date(inst.dueDate);
+      const dueDateFormatted = dueDateObj.toLocaleDateString('pt-BR');
+      const dateKey = inst.dueDate.split('T')[0]; // Formato YYYY-MM-DD para comparação com o input date
+      
+      const isPast = dueDateObj < new Date();
       const status = inst.status === 'PAID' ? 'pago' : isPast ? 'atrasado' : 'a vencer';
 
       return {
         id: `${order._id}-${index}`,
         orderId: order._id,
-        clientName: order.client?.name || 'Cliente desconhecido',
+        clientName: order.client?.name || 'Cliente não identificado',
         installmentLabel: `Parcela ${index + 1} de ${order.installments.length} · ${dueDateFormatted} · R$ ${inst.amount.toFixed(2).replace('.', ',')}`,
-        dateKey: inst.dueDate.split('T')[0],
+        dateKey,
         amount: inst.amount,
         status,
         items: order.items,
@@ -54,8 +63,8 @@ export function ReportsContainer() {
     });
   });
 
-  // Filtros aplicados conforme a aba ativa
-  const filteredRows = reportRows.filter(row => {
+  // Filtra as linhas com base na aba ativa (Por data ou Por cliente)
+  const filteredRows = reportRows.filter((row) => {
     if (activeTab === 'date') {
       return row.dateKey === selectedDate;
     } else {
@@ -133,9 +142,9 @@ export function ReportsContainer() {
         </div>
       )}
 
-      {/* Lista de Registros */}
+      {/* Lista de Registros / Recebimentos */}
       {loading ? (
-        <div className="text-center py-10 text-xs text-stone-400 italic">Carregando relatórios...</div>
+        <div className="text-center py-10 text-xs text-stone-400 italic">Carregando relatórios do BFF...</div>
       ) : filteredRows.length === 0 ? (
         <div className="bg-white p-8 rounded-3xl text-center border border-stone-200/60">
           <p className="text-xs text-stone-400 italic">Nenhum recebimento encontrado para este filtro.</p>
@@ -144,21 +153,31 @@ export function ReportsContainer() {
         <div className="space-y-4">
           {filteredRows.map((row) => {
             const isOpen = openCardId === row.id;
-            const cardTitle = activeTab === 'date' ? row.clientName : new Date(row.dateKey).toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' });
             
-            const badgeBg = row.status === 'atrasado' 
-              ? 'bg-red-100 text-red-700' 
-              : row.status === 'pago' 
-              ? 'bg-lime-100 text-lime-800' 
-              : 'bg-amber-100 text-amber-800';
+            // Na visão por data, o título principal é o nome do cliente. Na visão por cliente, é a data formatada.
+            const cardTitle =
+              activeTab === 'date'
+                ? row.clientName
+                : new Date(row.dateKey + 'T00:00:00').toLocaleDateString('pt-BR', {
+                    day: '2-digit',
+                    month: 'long',
+                    year: 'numeric',
+                  });
+
+            const badgeBg =
+              row.status === 'atrasado'
+                ? 'bg-red-100 text-red-700'
+                : row.status === 'pago'
+                ? 'bg-lime-100 text-lime-800'
+                : 'bg-amber-100 text-amber-800';
 
             return (
-              <div 
+              <div
                 key={row.id}
                 className="bg-white p-5 rounded-3xl shadow-sm border border-stone-200/60 transition-all space-y-3"
               >
                 {/* Topo do Card (Acordeão Header) */}
-                <div 
+                <div
                   onClick={() => setOpenCardId(isOpen ? null : row.id)}
                   className="flex items-center justify-between cursor-pointer"
                 >
@@ -176,7 +195,7 @@ export function ReportsContainer() {
                   </button>
                 </div>
 
-                {/* Conteúdo Expandido (Rateio e Produtos) */}
+                {/* Conteúdo Expandido (Rateio e Produtos vindos do BFF) */}
                 {isOpen && (
                   <div className="pt-3 border-t border-stone-100 space-y-4 animate-fade-in">
                     <div className="bg-[#FDFBF7] p-4 rounded-2xl border border-stone-200/60 space-y-3">
@@ -185,25 +204,33 @@ export function ReportsContainer() {
                       </span>
 
                       <div className="space-y-3 divide-y divide-stone-100">
-                        {row.items.map((item, idx) => (
-                          <div key={idx} className={`flex justify-between items-start pt-2 ${idx === 0 ? 'pt-0' : ''}`}>
-                            <div>
-                              <p className="text-xs font-bold text-stone-900">{item.representative?.name || 'Geral'}</p>
-                              <p className="text-[11px] text-stone-500">{item.segment}</p>
-                              <p className="text-[11px] text-stone-600 mt-0.5">• {item.productName} · {item.quantity}x</p>
+                        {row.items.map((item, idx) => {
+                          const repName = typeof item.representative === 'object' && item.representative !== null
+                            ? (item.representative as any).name
+                            : 'Representante';
+
+                          return (
+                            <div key={idx} className={`flex justify-between items-start pt-2 ${idx === 0 ? 'pt-0' : ''}`}>
+                              <div>
+                                <p className="text-xs font-bold text-stone-900">{repName}</p>
+                                <p className="text-[11px] text-stone-500">{item.segment}</p>
+                                <p className="text-[11px] text-stone-600 mt-0.5">
+                                  • {item.productName} · {item.quantity}x
+                                </p>
+                              </div>
+                              <span className="text-xs font-bold text-stone-900">
+                                R$ {(item.price * item.quantity).toFixed(2).replace('.', ',')}
+                              </span>
                             </div>
-                            <span className="text-xs font-bold text-stone-900">
-                              R$ {(item.price * item.quantity).toFixed(2).replace('.', ',')}
-                            </span>
-                          </div>
-                        ))}
+                          );
+                        })}
                       </div>
                     </div>
 
                     {/* Botão Ver Ordem Completa */}
                     <button
                       type="button"
-                      onClick={() => alert(`Visualizar ordem completa ID: ${row.orderId}`)}
+                      onClick={() => alert(`Visualizar ordem ID: ${row.orderId}`)}
                       className="w-full bg-amber-400 hover:bg-amber-500 text-stone-950 font-bold py-3 rounded-2xl text-xs shadow-sm flex items-center justify-between px-4 transition-transform active:scale-[0.99]"
                     >
                       <span>Ver ordem completa</span>
