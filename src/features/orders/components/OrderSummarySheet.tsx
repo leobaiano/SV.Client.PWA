@@ -5,11 +5,12 @@ import { OrderItem } from './OrderItemsList';
 interface OrderSummarySheetProps {
   isOpen: boolean;
   onClose: () => void;
-  onConfirm: () => void;
+  onConfirm?: () => void; // Opcional agora, pois no relatório não é necessário
   client: string | null;
   representative: string | null;
   items: OrderItem[];
   installments: number;
+  isReadOnly?: boolean; // Nova flag para ocultar o botão de cadastro nos relatórios
 }
 
 export function OrderSummarySheet({
@@ -20,6 +21,7 @@ export function OrderSummarySheet({
   representative,
   items,
   installments,
+  isReadOnly = false,
 }: OrderSummarySheetProps) {
   if (!isOpen) return null;
 
@@ -68,7 +70,9 @@ export function OrderSummarySheet({
   });
 
   const handleWhatsAppShare = () => {
-    window.open('https://wa.me/?text=Resumo%20da%20Venda', '_blank');
+    const itemsText = items.map(i => `- ${i.name} (${i.quantity}x): R$ ${(i.price * i.quantity).toFixed(2)}`).join('%0A');
+    const message = `*Resumo da Ordem de Serviço*%0A*Cliente:* ${client || 'N/A'}%0A*Representante:* ${representative || 'N/A'}%0A%0A*Itens:*%0A${itemsText}%0A%0A*Total:* R$ ${totalAmount.toFixed(2)}`;
+    window.open(`https://wa.me/?text=${message}`, '_blank');
   };
 
   return (
@@ -77,10 +81,15 @@ export function OrderSummarySheet({
         <div>
           <div className="flex items-center justify-between pb-4 border-b border-stone-200 mb-6">
             <div>
-              <span className="text-[10px] font-bold text-stone-500 uppercase tracking-wider">Resumo da Venda</span>
-              <h2 className="text-xl font-black text-stone-900">Concluir Ordem de Serviço</h2>
+              <span className="text-[10px] font-bold text-stone-500 uppercase tracking-wider">
+                {isReadOnly ? 'Detalhes da Ordem' : 'Resumo da Venda'}
+              </span>
+              <h2 className="text-xl font-black text-stone-950">
+                {isReadOnly ? 'Ordem de Serviço' : 'Concluir Ordem de Serviço'}
+              </h2>
             </div>
             <button
+              type="button"
               onClick={onClose}
               className="w-8 h-8 rounded-full bg-stone-200 hover:bg-stone-300 text-stone-700 font-bold flex items-center justify-center transition-colors"
             >
@@ -92,7 +101,7 @@ export function OrderSummarySheet({
             {/* Cliente */}
             <div className="bg-white p-4 rounded-2xl border border-stone-200/60 shadow-sm">
               <span className="text-[10px] font-bold text-stone-400 uppercase">Cliente</span>
-              <p className="text-sm font-bold text-stone-900 mt-0.5">{client || 'Cliente não identificado'}</p>
+              <p className="text-sm font-bold text-stone-950 mt-0.5">{client || 'Cliente não identificado'}</p>
             </div>
 
             {/* Representante e Itens da Venda */}
@@ -100,7 +109,7 @@ export function OrderSummarySheet({
               <div className="flex justify-between items-center mb-3 pb-2 border-b border-stone-100">
                 <div>
                   <span className="text-[10px] font-bold text-stone-400 uppercase block">Representante</span>
-                  <p className="text-xs font-black text-stone-900 uppercase">{representative || 'Não definido'}</p>
+                  <p className="text-xs font-black text-stone-950 uppercase">{representative || 'Não definido'}</p>
                 </div>
                 <span className="text-xs font-bold text-orange-600">R$ {totalAmount.toFixed(2).replace('.', ',')}</span>
               </div>
@@ -123,7 +132,7 @@ export function OrderSummarySheet({
                         </div>
                         <div className="mt-1 pl-3 space-y-1">
                           {segItems.map((prod) => (
-                            <div key={prod.id} className="flex justify-between text-[11px] text-stone-500">
+                            <div key={prod.id || prod.name} className="flex justify-between text-[11px] text-stone-500">
                               <span>{prod.name} ({prod.quantity}x)</span>
                               <span className="font-semibold">R$ {(prod.price * prod.quantity).toFixed(2).replace('.', ',')}</span>
                             </div>
@@ -152,7 +161,7 @@ export function OrderSummarySheet({
                       </div>
                       <span className="font-semibold text-stone-700">{inst.dateFormatted}</span>
                     </div>
-                    <span className="font-bold text-stone-900">
+                    <span className="font-bold text-stone-950">
                       R$ {inst.value.toFixed(2).replace('.', ',')}
                     </span>
                   </div>
@@ -161,13 +170,13 @@ export function OrderSummarySheet({
 
               <div className="pt-2 border-t border-stone-100 flex justify-between items-center">
                 <span className="text-[10px] font-bold text-stone-400 uppercase">Total Geral</span>
-                <span className="text-base font-black text-stone-900">R$ {totalAmount.toFixed(2).replace('.', ',')}</span>
+                <span className="text-base font-black text-stone-950">R$ {totalAmount.toFixed(2).replace('.', ',')}</span>
               </div>
             </div>
           </div>
         </div>
 
-        {/* Rodapé com WhatsApp e Confirmação */}
+        {/* Rodapé com WhatsApp e Confirmação Condicional */}
         <div className="pt-6 border-t border-stone-200 mt-6 space-y-2.5">
           <button
             type="button"
@@ -177,13 +186,15 @@ export function OrderSummarySheet({
             <span>💬</span> Compartilhar no WhatsApp
           </button>
 
-          <button
-            type="button"
-            onClick={onConfirm}
-            className="w-full bg-orange-500 hover:bg-orange-600 text-white font-bold py-3.5 rounded-2xl text-sm shadow-lg shadow-orange-500/20 transition-transform active:scale-[0.99] flex items-center justify-center gap-2"
-          >
-            <span>✓</span> Confirmar e Cadastrar Venda · R$ {totalAmount.toFixed(2).replace('.', ',')}
-          </button>
+          {!isReadOnly && onConfirm && (
+            <button
+              type="button"
+              onClick={onConfirm}
+              className="w-full bg-orange-500 hover:bg-orange-600 text-white font-bold py-3.5 rounded-2xl text-sm shadow-lg shadow-orange-500/20 transition-transform active:scale-[0.99] flex items-center justify-center gap-2"
+            >
+              <span>✓</span> Confirmar e Cadastrar Venda · R$ {totalAmount.toFixed(2).replace('.', ',')}
+            </button>
+          )}
         </div>
       </div>
     </div>

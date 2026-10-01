@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { getOrdersForReport, OrderResponseDTO } from '@/services/reportService';
+import { OrderSummarySheet } from '@/features/orders/components/OrderSummarySheet';
 
 export function ReportsContainer() {
   const [activeTab, setActiveTab] = useState<'date' | 'client'>('date');
@@ -14,6 +15,9 @@ export function ReportsContainer() {
   
   // Estado para controlar quais cards estão expandidos
   const [openCardId, setOpenCardId] = useState<string | null>(null);
+
+  // Estado para controlar a ordem selecionada para o modal de visualização completa
+  const [selectedOrderForModal, setSelectedOrderForModal] = useState<OrderResponseDTO | null>(null);
 
   useEffect(() => {
     async function fetchOrders() {
@@ -52,7 +56,7 @@ export function ReportsContainer() {
 
       return {
         id: `${order._id}-${index}`,
-        orderId: order._id,
+        orderObject: order, // Referência completa para o modal
         clientName: order.client?.name || 'Cliente não identificado',
         installmentLabel: `Parcela ${index + 1} de ${order.installments.length} · ${dueDateFormatted} · R$ ${inst.amount.toFixed(2).replace('.', ',')}`,
         dateKey,
@@ -105,7 +109,7 @@ export function ReportsContainer() {
               : 'text-stone-500 hover:text-stone-900'
           }`}
         >
-          Por cliente
+          Por cliente[cite: 5]
         </button>
       </div>
 
@@ -125,7 +129,7 @@ export function ReportsContainer() {
         </div>
       ) : (
         <div className="bg-white p-4 rounded-3xl shadow-sm border border-stone-200/60 space-y-1">
-          <label className="block text-[11px] font-bold text-stone-500 uppercase">Cliente</label>
+          <label className="block text-[11px] font-bold text-stone-500 uppercase">Cliente[cite: 5]</label>
           <div className="bg-[#FDFBF7] border border-stone-200 rounded-2xl px-4 py-3">
             <select
               value={selectedClient}
@@ -154,7 +158,6 @@ export function ReportsContainer() {
           {filteredRows.map((row) => {
             const isOpen = openCardId === row.id;
             
-            // Na visão por data, o título principal é o nome do cliente. Na visão por cliente, é a data formatada.
             const cardTitle =
               activeTab === 'date'
                 ? row.clientName
@@ -230,7 +233,7 @@ export function ReportsContainer() {
                     {/* Botão Ver Ordem Completa */}
                     <button
                       type="button"
-                      onClick={() => alert(`Visualizar ordem ID: ${row.orderId}`)}
+                      onClick={() => setSelectedOrderForModal(row.orderObject)}
                       className="w-full bg-amber-400 hover:bg-amber-500 text-stone-950 font-bold py-3 rounded-2xl text-xs shadow-sm flex items-center justify-between px-4 transition-transform active:scale-[0.99]"
                     >
                       <span>Ver ordem completa</span>
@@ -242,6 +245,30 @@ export function ReportsContainer() {
             );
           })}
         </div>
+      )}
+
+      {/* Modal / Side Sheet reutilizado para exibir a ordem completa em modo leitura */}
+      {selectedOrderForModal && (
+        <OrderSummarySheet
+          isOpen={!!selectedOrderForModal}
+          onClose={() => setSelectedOrderForModal(null)}
+          client={selectedOrderForModal.client?.name || null}
+          representative={
+            selectedOrderForModal.items[0]?.representative && typeof selectedOrderForModal.items[0].representative === 'object'
+              ? (selectedOrderForModal.items[0].representative as any).name
+              : null
+          }
+          items={selectedOrderForModal.items.map((i, idx) => ({
+            id: String(idx),
+            name: i.productName,
+            quantity: i.quantity,
+            price: i.price,
+            segments: [i.segment],
+            representative: typeof i.representative === 'object' && i.representative !== null ? (i.representative as any).name : '',
+          }))}
+          installments={selectedOrderForModal.installments.length}
+          isReadOnly={true}
+        />
       )}
     </div>
   );
