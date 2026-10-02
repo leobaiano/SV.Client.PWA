@@ -18,7 +18,7 @@ export function ReceivablesCard() {
         </div>
 
         <Link 
-          href="/collections"
+          href="/cobrancas"
           className="bg-amber-400 hover:bg-amber-500 text-stone-950 font-bold px-5 py-2.5 rounded-2xl text-sm shadow-sm transition-transform active:scale-95 flex items-center justify-center"
         >
           Ver

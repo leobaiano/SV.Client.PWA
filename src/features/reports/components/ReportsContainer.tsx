@@ -109,7 +109,7 @@ export function ReportsContainer() {
               : 'text-stone-500 hover:text-stone-900'
           }`}
         >
-          Por cliente[cite: 5]
+          Por cliente
         </button>
       </div>
 
@@ -129,7 +129,7 @@ export function ReportsContainer() {
         </div>
       ) : (
         <div className="bg-white p-4 rounded-3xl shadow-sm border border-stone-200/60 space-y-1">
-          <label className="block text-[11px] font-bold text-stone-500 uppercase">Cliente[cite: 5]</label>
+          <label className="block text-[11px] font-bold text-stone-500 uppercase">Cliente</label>
           <div className="bg-[#FDFBF7] border border-stone-200 rounded-2xl px-4 py-3">
             <select
               value={selectedClient}

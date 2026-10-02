@@ -38,7 +38,7 @@ export function DashboardActions() {
 
         {/* Cobranças */}
         <Link 
-          href="/collections"
+          href="/cobrancas"
           className="bg-[#06B6D4] hover:bg-[#0891b2] text-white p-4 rounded-3xl shadow-md shadow-cyan-500/10 flex flex-col justify-between h-32 transition-transform active:scale-[0.98]"
         >
           <div className="w-8 h-8 bg-white/20 rounded-xl flex items-center justify-center text-base">

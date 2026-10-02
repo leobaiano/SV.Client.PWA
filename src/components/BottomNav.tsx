@@ -39,8 +39,8 @@ export function BottomNav() {
 
       {/* Cobranças */}
       <Link 
-        href="/collections" 
-        className={`flex flex-col items-center justify-center w-16 py-1 rounded-2xl transition-all ${pathname === '/collections' ? 'text-orange-600 font-semibold bg-orange-50/80' : 'text-stone-400 hover:text-stone-700'}`}
+        href="/cobrancas" 
+        className={`flex flex-col items-center justify-center w-16 py-1 rounded-2xl transition-all ${pathname === '/cobrancas' ? 'text-orange-600 font-semibold bg-orange-50/80' : 'text-stone-400 hover:text-stone-700'}`}
       >
         <span className="text-xl">✉️</span>
         <span className="text-[10px] mt-0.5 tracking-tight">Cobr.</span>
